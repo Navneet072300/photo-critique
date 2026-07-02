@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "photo-critique.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "photo-critique.labels" . | nindent 4 }}
+data:
+  DEBUG: "{{ .Values.config.DEBUG }}"
+  LOG_LEVEL: "{{ .Values.config.LOG_LEVEL }}"
