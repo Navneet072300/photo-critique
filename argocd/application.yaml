@@ -1,0 +1,11 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: photo-critique
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Navneet072300/photo-critique.git
+    targetRevision: main
+    path: helm
