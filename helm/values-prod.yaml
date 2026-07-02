@@ -1,0 +1,29 @@
+replicaCount:
+  backend: 3
+  frontend: 3
+
+image:
+  backend:
+    tag: "{{ .Values.image.backend.tag }}"
+  frontend:
+    tag: "{{ .Values.image.frontend.tag }}"
+
+resources:
+  backend:
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+  frontend:
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+
+config:
+  DEBUG: false
+  LOG_LEVEL: warning
