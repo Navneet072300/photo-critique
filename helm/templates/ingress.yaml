@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "photo-critique.fullname" . }}-ingress
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    # Uncomment the line below if using cert‑manager for TLS
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  {{- if false }} # Set to true when TLS secret is ready
+  tls:
+    - hosts:
+        - photo-critique.example.com
+      secretName: photo-critique-tls
+  {{- end }}
+  rules:
+    - host: photo-critique.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "photo-critique.fullname" . }}-backend
+                port:
+                  number: {{ .Values.service.backend.port }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "photo-critique.fullname" . }}-frontend
+                port:
+                  number: {{ .Values.service.frontend.port }}
