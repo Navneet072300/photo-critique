@@ -1,0 +1,41 @@
+replicaCount:
+  backend: 2
+  frontend: 2
+
+image:
+  backend:
+    repository: ghcr.io/Navneet072300/photo-critique/backend
+    pullPolicy: IfNotPresent
+    tag: latest
+  frontend:
+    repository: ghcr.io/Navneet072300/photo-critique/frontend
+    pullPolicy: IfNotPresent
+    tag: latest
+
+service:
+  backend:
+    type: ClusterIP
+    port: 8000
+  frontend:
+    type: ClusterIP
+    port: 3000
+
+resources:
+  backend:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+  frontend:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+
+config:
+  DEBUG: false
+  LOG_LEVEL: info
