@@ -1,0 +1,29 @@
+replicaCount:
+  backend: 1
+  frontend: 1
+
+image:
+  backend:
+    tag: "{{ .Values.image.backend.tag }}"  # will be overridden by CI tag
+  frontend:
+    tag: "{{ .Values.image.frontend.tag }}"
+
+resources:
+  backend:
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+  frontend:
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+
+config:
+  DEBUG: true
+  LOG_LEVEL: debug
