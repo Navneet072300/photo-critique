@@ -1,0 +1,117 @@
+# Required secrets (set in repository settings):
+#   - GITHUB_TOKEN (automatically provided, used for GHCR authentication)
+#   - ARGOCD_SERVER (e.g., https://argocd.mycompany.com)
+#   - ARGOCD_TOKEN (a token with sync permission for the target applications)
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+
+env:
+  REGISTRY: ghcr.io/Navneet072300/photo-critique
+  IMAGE_BACKEND: ${{ env.REGISTRY }}/backend
+  IMAGE_FRONTEND: ${{ env.REGISTRY }}/frontend
+  GIT_SHA: ${{ github.sha }}
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_BACKEND }}:${{ env.GIT_SHA }}
+          cache-from: type=registry,ref=${{ env.IMAGE_BACKEND }}:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_BACKEND }}:buildcache,mode=max
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_FRONTEND }}:${{ env.GIT_SHA }}
+          cache-from: type=registry,ref=${{ env.IMAGE_FRONTEND }}:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_FRONTEND }}:buildcache,mode=max
+
+  deploy-dev:
+    if: github.ref == 'refs/heads/dev'
+    needs: [build-backend, build-frontend]
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Install Argo CD CLI
+        run: |
+          curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/v2.9.0/argocd-linux-amd64
+          chmod +x /usr/local/bin/argocd
+
+      - name: Sync Argo CD Application (dev)
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+        run: |
+          argocd login $ARGOCD_SERVER --insecure --auth-token $ARGOCD_TOKEN
+          argocd app sync photo-critique-dev
+          argocd app wait photo-critique-dev --health
+
+  deploy-prod:
+    if: github.ref == 'refs/heads/main'
+    needs: [build-backend, build-frontend]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Install Argo CD CLI
+        run: |
+          curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/v2.9.0/argocd-linux-amd64
+          chmod +x /usr/local/bin/argocd
+
+      - name: Sync Argo CD Application (prod)
+        env:
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+          ARGOCD_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+        run: |
+          argocd login $ARGOCD_SERVER --insecure --auth-token $ARGOCD_TOKEN
+          argocd app sync photo-critique
+          argocd app wait photo-critique --health
