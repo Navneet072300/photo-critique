@@ -6,5 +6,5 @@ metadata:
   labels:
     {{- include "photo-critique.labels" . | nindent 4 }}
 data:
-  DEBUG: "{{ .Values.config.DEBUG }}"
-  LOG_LEVEL: "{{ .Values.config.LOG_LEVEL }}"
+  # Add non‑secret configuration here
+  LOG_LEVEL: "info"
