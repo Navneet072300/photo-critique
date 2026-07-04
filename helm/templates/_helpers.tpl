@@ -1,11 +1,19 @@
-{{- define "photo-critique.fullname" -}}
-{{- printf "%s-%s" .Release.Name .Chart.Name | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-
 {{- define "photo-critique.labels" -}}
-helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-app.kubernetes.io/name: {{ .Chart.Name }}
+app.kubernetes.io/name: {{ include "photo-critique.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ .Chart.AppVersion }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
-{{- end -}}
+{{- end }}
+
+{{- define "photo-critique.name" -}}
+{{ .Chart.Name }}
+{{- end }}
+
+{{- define "photo-critique.fullname" -}}
+{{ include "photo-critique.name" . }}-{{ .Release.Name }}
+{{- end }}
+
+{{- define "photo-critique.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "photo-critique.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
