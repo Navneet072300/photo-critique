@@ -6,12 +6,11 @@ metadata:
   labels:
     {{- include "photo-critique.labels" . | nindent 4 }}
 spec:
-  type: {{ .Values.service.frontend.type }}
+  type: ClusterIP
   selector:
-    app.kubernetes.io/name: {{ .Chart.Name }}
-    app.kubernetes.io/component: frontend
+    {{- include "photo-critique.selectorLabels" . | nindent 4 }}
+    component: frontend
   ports:
-    - port: {{ .Values.service.frontend.port }}
-      targetPort: {{ .Values.service.frontend.port }}
-      protocol: TCP
-      name: http
+    - name: http
+      port: {{ .Values.frontend.service.port }}
+      targetPort: {{ .Values.frontend.service.targetPort }}
