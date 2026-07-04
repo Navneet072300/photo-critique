@@ -1,117 +1,110 @@
-# Required secrets (set in repository settings):
-#   - GITHUB_TOKEN (automatically provided, used for GHCR authentication)
+# Required secrets:
+#   - GITHUB_TOKEN (automatically provided)
 #   - ARGOCD_SERVER (e.g., https://argocd.mycompany.com)
-#   - ARGOCD_TOKEN (a token with sync permission for the target applications)
+#   - ARGOCD_TOKEN (ArgoCD authentication token with sync permission)
 
 name: CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - dev
-      - main
+    branches: [dev, main]
 
 env:
-  REGISTRY: ghcr.io/Navneet072300/photo-critique
-  IMAGE_BACKEND: ${{ env.REGISTRY }}/backend
-  IMAGE_FRONTEND: ${{ env.REGISTRY }}/frontend
+  REGISTRY: ghcr.io
+  IMAGE_REPO: ghcr.io/Navneet072300/photo-critique
   GIT_SHA: ${{ github.sha }}
 
 jobs:
   build-backend:
+    name: Build & Push Backend Image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GitHub Container Registry
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push backend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          file: ./backend/Dockerfile
-          push: true
-          tags: ${{ env.IMAGE_BACKEND }}:${{ env.GIT_SHA }}
-          cache-from: type=registry,ref=${{ env.IMAGE_BACKEND }}:buildcache
-          cache-to: type=registry,ref=${{ env.IMAGE_BACKEND }}:buildcache,mode=max
+      - name: Build backend image
+        working-directory: backend
+        run: |
+          docker build -t ${{ env.IMAGE_REPO }}/backend:${{ env.GIT_SHA }} .
+
+      - name: Push backend image
+        run: |
+          docker push ${{ env.IMAGE_REPO }}/backend:${{ env.GIT_SHA }}
 
   build-frontend:
+    name: Build & Push Frontend Image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GitHub Container Registry
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
-          push: true
-          tags: ${{ env.IMAGE_FRONTEND }}:${{ env.GIT_SHA }}
-          cache-from: type=registry,ref=${{ env.IMAGE_FRONTEND }}:buildcache
-          cache-to: type=registry,ref=${{ env.IMAGE_FRONTEND }}:buildcache,mode=max
+      - name: Build frontend image
+        working-directory: frontend
+        run: |
+          docker build -t ${{ env.IMAGE_REPO }}/frontend:${{ env.GIT_SHA }} .
+
+      - name: Push frontend image
+        run: |
+          docker push ${{ env.IMAGE_REPO }}/frontend:${{ env.GIT_SHA }}
 
   deploy-dev:
-    if: github.ref == 'refs/heads/dev'
-    needs: [build-backend, build-frontend]
+    name: Deploy to Development
     runs-on: ubuntu-latest
-    environment: dev
+    needs: [build-backend, build-frontend]
+    if: github.ref == 'refs/heads/dev'
     steps:
-      - name: Install Argo CD CLI
+      - name: Install ArgoCD CLI
         run: |
-          curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/v2.9.0/argocd-linux-amd64
+          curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/v2.9.5/argocd-linux-amd64
           chmod +x /usr/local/bin/argocd
 
-      - name: Sync Argo CD Application (dev)
+      - name: Login to ArgoCD
         env:
-          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
-          ARGOCD_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+          ARGOCD_OPTS: --insecure
         run: |
-          argocd login $ARGOCD_SERVER --insecure --auth-token $ARGOCD_TOKEN
-          argocd app sync photo-critique-dev
-          argocd app wait photo-critique-dev --health
+          argocd login ${{ secrets.ARGOCD_SERVER }} ${{ env.ARGOCD_OPTS }} --username admin --password ${{ secrets.ARGOCD_TOKEN }} --grpc-web
+
+      - name: Sync Development Application
+        run: |
+          argocd app sync photo-critique-dev --grpc-web
 
   deploy-prod:
-    if: github.ref == 'refs/heads/main'
-    needs: [build-backend, build-frontend]
+    name: Deploy to Production
     runs-on: ubuntu-latest
-    environment: production
+    needs: [build-backend, build-frontend]
+    if: github.ref == 'refs/heads/main'
     steps:
-      - name: Install Argo CD CLI
+      - name: Install ArgoCD CLI
         run: |
-          curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/v2.9.0/argocd-linux-amd64
+          curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/download/v2.9.5/argocd-linux-amd64
           chmod +x /usr/local/bin/argocd
 
-      - name: Sync Argo CD Application (prod)
+      - name: Login to ArgoCD
         env:
-          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
-          ARGOCD_TOKEN: ${{ secrets.ARGOCD_TOKEN }}
+          ARGOCD_OPTS: --insecure
         run: |
-          argocd login $ARGOCD_SERVER --insecure --auth-token $ARGOCD_TOKEN
-          argocd app sync photo-critique
-          argocd app wait photo-critique --health
+          argocd login ${{ secrets.ARGOCD_SERVER }} ${{ env.ARGOCD_OPTS }} --username admin --password ${{ secrets.ARGOCD_TOKEN }} --grpc-web
+
+      - name: Sync Production Application
+        run: |
+          argocd app sync photo-critique-prod --grpc-web
