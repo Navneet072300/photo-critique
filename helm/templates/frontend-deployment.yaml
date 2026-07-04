@@ -6,32 +6,30 @@ metadata:
   labels:
     {{- include "photo-critique.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.replicaCount.frontend }}
+  replicas: {{ .Values.frontend.replicaCount }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ .Chart.Name }}
-      app.kubernetes.io/component: frontend
+      {{- include "photo-critique.selectorLabels" . | nindent 6 }}
+      component: frontend
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ .Chart.Name }}
-        app.kubernetes.io/component: frontend
-        {{- include "photo-critique.labels" . | nindent 8 }}
+        {{- include "photo-critique.selectorLabels" . | nindent 8 }}
+        component: frontend
     spec:
-      serviceAccountName: {{ include "photo-critique.fullname" . }}-sa
+      serviceAccountName: {{ include "photo-critique.fullname" . }}
       containers:
         - name: frontend
-          image: "{{ .Values.image.frontend.repository }}:{{ .Values.image.frontend.tag }}"
-          imagePullPolicy: {{ .Values.image.frontend.pullPolicy }}
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
           ports:
-            - containerPort: {{ .Values.service.frontend.port }}
+            - containerPort: {{ .Values.frontend.service.targetPort }}
+          resources:
+            limits:
+              cpu: "{{ .Values.frontend.resources.limits.cpu }}"
+              memory: "{{ .Values.frontend.resources.limits.memory }}"
+            requests:
+              cpu: "{{ .Values.frontend.resources.requests.cpu }}"
+              memory: "{{ .Values.frontend.resources.requests.memory }}"
           envFrom:
             - configMapRef:
                 name: {{ include "photo-critique.fullname" . }}-config
-          resources:
-            limits:
-              cpu: "{{ .Values.resources.frontend.limits.cpu }}"
-              memory: "{{ .Values.resources.frontend.limits.memory }}"
-            requests:
-              cpu: "{{ .Values.resources.frontend.requests.cpu }}"
-              memory: "{{ .Values.resources.frontend.requests.memory }}"
