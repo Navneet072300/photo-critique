@@ -1,29 +1,32 @@
-replicaCount:
-  backend: 3
-  frontend: 3
-
-image:
-  backend:
-    tag: "{{ .Values.image.backend.tag }}"
-  frontend:
-    tag: "{{ .Values.image.frontend.tag }}"
-
-resources:
-  backend:
+backend:
+  replicaCount: 3
+  image:
+    tag: "{{ env \"GIT_SHA\" }}"
+  resources:
     limits:
-      cpu: "1000m"
+      cpu: "1"
       memory: "1Gi"
     requests:
       cpu: "500m"
       memory: "512Mi"
-  frontend:
+  service:
+    port: 8000
+    targetPort: 8000
+
+frontend:
+  replicaCount: 3
+  image:
+    tag: "{{ env \"GIT_SHA\" }}"
+  resources:
     limits:
-      cpu: "1000m"
+      cpu: "1"
       memory: "1Gi"
     requests:
       cpu: "500m"
       memory: "512Mi"
+  service:
+    port: 3000
+    targetPort: 3000
 
-config:
-  DEBUG: false
-  LOG_LEVEL: warning
+ingress:
+  enabled: true
