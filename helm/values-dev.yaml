@@ -1,29 +1,32 @@
-replicaCount:
-  backend: 1
-  frontend: 1
-
-image:
-  backend:
-    tag: "{{ .Values.image.backend.tag }}"  # will be overridden by CI tag
-  frontend:
-    tag: "{{ .Values.image.frontend.tag }}"
-
-resources:
-  backend:
+backend:
+  replicaCount: 1
+  image:
+    tag: "{{ env \"GIT_SHA\" }}"
+  resources:
     limits:
       cpu: "250m"
       memory: "256Mi"
     requests:
-      cpu: "100m"
+      cpu: "125m"
       memory: "128Mi"
-  frontend:
+  service:
+    port: 8000
+    targetPort: 8000
+
+frontend:
+  replicaCount: 1
+  image:
+    tag: "{{ env \"GIT_SHA\" }}"
+  resources:
     limits:
       cpu: "250m"
       memory: "256Mi"
     requests:
-      cpu: "100m"
+      cpu: "125m"
       memory: "128Mi"
+  service:
+    port: 3000
+    targetPort: 3000
 
-config:
-  DEBUG: true
-  LOG_LEVEL: debug
+ingress:
+  enabled: false  # No public ingress for dev
