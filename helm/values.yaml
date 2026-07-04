@@ -1,41 +1,48 @@
-replicaCount:
-  backend: 2
-  frontend: 2
+global:
+  imageRegistry: ghcr.io
+  imageRepository: Navneet072300/photo-critique
 
-image:
-  backend:
-    repository: ghcr.io/Navneet072300/photo-critique/backend
-    pullPolicy: IfNotPresent
-    tag: latest
-  frontend:
-    repository: ghcr.io/Navneet072300/photo-critique/frontend
-    pullPolicy: IfNotPresent
-    tag: latest
-
-service:
-  backend:
-    type: ClusterIP
+backend:
+  replicaCount: 2
+  image:
+    repository: "{{ .Values.global.imageRegistry }}/{{ .Values.global.imageRepository }}/backend"
+    tag: "latest"
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+  service:
     port: 8000
-  frontend:
-    type: ClusterIP
+    targetPort: 8000
+
+frontend:
+  replicaCount: 2
+  image:
+    repository: "{{ .Values.global.imageRegistry }}/{{ .Values.global.imageRepository }}/frontend"
+    tag: "latest"
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+  service:
     port: 3000
+    targetPort: 3000
 
-resources:
-  backend:
-    limits:
-      cpu: "500m"
-      memory: "512Mi"
-    requests:
-      cpu: "250m"
-      memory: "256Mi"
-  frontend:
-    limits:
-      cpu: "500m"
-      memory: "512Mi"
-    requests:
-      cpu: "250m"
-      memory: "256Mi"
-
-config:
-  DEBUG: false
-  LOG_LEVEL: info
+ingress:
+  enabled: true
+  hosts:
+    - host: backend.example.com
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+    - host: frontend.example.com
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []  # TLS entries are commented out by default; enable after DNS
